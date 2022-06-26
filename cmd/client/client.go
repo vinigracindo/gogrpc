@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
 	"github.com/vinigracindo/gogrpc/pb"
 	"google.golang.org/grpc"
@@ -18,7 +19,8 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewUserServiceClient(conn)
-	AddUserStream(client)
+	//AddUserStream(client)
+	AddUsers(client)
 }
 
 func AddUser(client pb.UserServiceClient) {
@@ -58,4 +60,41 @@ func AddUserStream(client pb.UserServiceClient) {
 		}
 		fmt.Println("Status:", stream.Status, "User:", stream.User)
 	}
+}
+
+func AddUsers(client pb.UserServiceClient) {
+	reqs := []*pb.User{
+		&pb.User{
+			Id:    "0",
+			Name:  "John Doe",
+			Email: "john@doe.com",
+		},
+		&pb.User{
+			Id:    "1",
+			Name:  "Jane Doe",
+			Email: "jane@doe.com",
+		},
+		&pb.User{
+			Id:    "2",
+			Name:  "Jack Doe",
+			Email: "jack@doe.com",
+		},
+	}
+
+	stream, err := client.AddUsers(context.Background())
+	if err != nil {
+		log.Fatalf("Could not make gRPC request: %v", err)
+	}
+
+	for _, req := range reqs {
+		stream.Send(req)
+		time.Sleep(time.Second * 2)
+	}
+
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("Could not make gRPC request: %v", err)
+	}
+
+	fmt.Println(res)
 }
